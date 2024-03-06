@@ -1,0 +1,43 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: ccp2
+servers: 1
+agents: 2
+image: docker.io/rancher/k3s:v1.27.4-k3s1
+kubeAPI: 
+  host: api.160.85.253.<x>.nip.io
+  hostIP: "0.0.0.0"
+  hostPort: "6443"
+ports:
+  - port: 0.0.0.0:80:80 # same as `--port '80:80@loadbalancer'`
+    nodeFilters:
+      - loadbalancer
+  - port: 0.0.0.0:443:443 # same as `--port '443:443@loadbalancer'`
+    nodeFilters:
+      - loadbalancer
+  - port: 127.0.0.1:9000:9000 # traefik dashboard only local
+    nodeFilters:
+      - loadbalancer
+volumes: # map directory for local-path-provisioner
+  - volume: $HOME/storage:/var/lib/rancher/k3s/storage
+    nodeFilters:
+    - all
+registries: 
+  create: # creates a default registry to be used with the cluster; same as `--registry-create registry.localhost`
+    name: registry.localhost
+    host: "0.0.0.0"
+    hostPort: "5000"
+options:
+  k3d:
+    wait: true                   # wait for cluster to be usable before returining; same as `--wait` (default: true)
+    timeout: "60s"               # wait timeout before aborting; same as `--timeout 60s`
+    disableLoadbalancer: false   # same as `--no-lb`
+    disableImageVolume: false    # same as `--no-image-volume`
+    disableRollback: false       # same as `--no-Rollback`
+  k3s:
+    extraArgs: 
+      - arg: --node-taint=CriticalAddonsOnly=true:NoExecute # set server nodes to not run pods
+        nodeFilters:
+          - server:*
+
